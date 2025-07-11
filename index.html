@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Best Buds 🌿 Cannabis Shop Tracker</title>
+  <style>
+    body {
+      background: #0e0e0e;
+      color: #e0ffe0;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 30px;
+    }
+    h1 {
+      text-align: center;
+      color: #66ff66;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: #1c1c1c;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #333;
+      text-align: center;
+    }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 5px;
+      background: #222;
+      color: #fff;
+      border: 1px solid #555;
+    }
+    .btn {
+      background-color: #66ff66;
+      color: black;
+      padding: 10px 18px;
+      margin-top: 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      display: block;
+      margin-left: auto;
+    }
+    .delete-btn {
+      background-color: #ff5555;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .total-box {
+      margin-top: 20px;
+      font-size: 18px;
+      text-align: right;
+      color: #88ff88;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🌿 Best Buds - Cannabis Shop Tracker</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Grams Sold</th>
+      <th>Cash</th>
+      <th>Transfers</th>
+      <th>Expenses</th>
+      <th>Net Sale</th>
+      <th>Delete</th>
+    </tr>
+  </thead>
+  <tbody id="budBody"></tbody>
+</table>
+
+<button class="btn" onclick="addBudShift()">+ Add Sale Record</button>
+
+<div class="total-box">
+  🌱 Total Net Sales: <span id="totalNet">0</span> ฿<br>
+  🌿 Total Grams Sold: <span id="totalGrams">0</span> g
+</div>
+
+<script>
+  const STORAGE_KEY = 'bestBudsShop';
+
+  let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
+    {
+      date: "11.7.25",
+      grams: 8,
+      cash: 800,
+      transfers: "200,500",
+      expenses: 50
+    },
+    {
+      date: "12.7.25",
+      grams: 4,
+      cash: 400,
+      transfers: "300",
+      expenses: 0
+    }
+  ];
+
+  const body = document.getElementById('budBody');
+  const totalNetEl = document.getElementById('totalNet');
+  const totalGramsEl = document.getElementById('totalGrams');
+
+  function parseSum(str) {
+    if (!str) return 0;
+    return str.split(',').map(x => parseFloat(x.trim()) || 0).reduce((a, b) => a + b, 0);
+  }
+
+  function saveData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function renderTable() {
+    body.innerHTML = '';
+    let totalNet = 0;
+    let totalGrams = 0;
+
+    data.forEach((entry, index) => {
+      const row = document.createElement('tr');
+
+      // Date
+      const dateCell = document.createElement('td');
+      const dateInput = document.createElement('input');
+      dateInput.type = 'text';
+      dateInput.value = entry.date;
+      dateInput.onchange = () => update(index, 'date', dateInput.value);
+      dateCell.appendChild(dateInput);
+      row.appendChild(dateCell);
+
+      // Grams
+      const gramCell = document.createElement('td');
+      const gramInput = document.createElement('input');
+      gramInput.type = 'number';
+      gramInput.value = entry.grams;
+      gramInput.onchange = () => update(index, 'grams', parseFloat(gramInput.value) || 0);
+      gramCell.appendChild(gramInput);
+      row.appendChild(gramCell);
+      totalGrams += entry.grams;
+
+      // Cash
+      const cashCell = document.createElement('td');
+      const cashInput = document.createElement('input');
+      cashInput.type = 'number';
+      cashInput.value = entry.cash;
+      cashInput.onchange = () => update(index, 'cash', parseFloat(cashInput.value) || 0);
+      cashCell.appendChild(cashInput);
+      row.appendChild(cashCell);
+
+      // Transfers
+      const transferCell = document.createElement('td');
+      const transferInput = document.createElement('input');
+      transferInput.type = 'text';
+      transferInput.value = entry.transfers;
+      transferInput.onchange = () => update(index, 'transfers', transferInput.value);
+      transferCell.appendChild(transferInput);
+      row.appendChild(transferCell);
+
+      // Expenses
+      const expenseCell = document.createElement('td');
+      const expenseInput = document.createElement('input');
+      expenseInput.type = 'number';
+      expenseInput.value = entry.expenses;
+      expenseInput.onchange = () => update(index, 'expenses', parseFloat(expenseInput.value) || 0);
+      expenseCell.appendChild(expenseInput);
+      row.appendChild(expenseCell);
+
+      // Net Sale
+      const netSale = (entry.cash || 0) + parseSum(entry.transfers) - (entry.expenses || 0);
+      totalNet += netSale;
+      const netSaleCell = document.createElement('td');
+      netSaleCell.textContent = netSale.toLocaleString() + ' ฿';
+      row.appendChild(netSaleCell);
+
+      // Delete
+      const deleteCell = document.createElement('td');
+      const delBtn = document.createElement('button');
+      delBtn.textContent = "🗑️";
+      delBtn.className = "delete-btn";
+      delBtn.onclick = () => {
+        if (confirm("Delete this sale record?")) {
+          data.splice(index, 1);
+          saveData();
+          renderTable();
+        }
+      };
+      deleteCell.appendChild(delBtn);
+      row.appendChild(deleteCell);
+
+      body.appendChild(row);
+    });
+
+    totalNetEl.textContent = totalNet.toLocaleString();
+    totalGramsEl.textContent = totalGrams;
+  }
+
+  function update(index, field, value) {
+    data[index][field] = value;
+    saveData();
+    renderTable();
+  }
+
+  function addBudShift() {
+    data.push({
+      date: '',
+      grams: 0,
+      cash: 0,
+      transfers: '',
+      expenses: 0
+    });
+    saveData();
+    renderTable();
+  }
+
+  renderTable();
+</script>
+
+</body>
+</html>
